@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import {
     Card,
@@ -31,7 +31,7 @@ interface Crate {
     items: CrateItem[];
 }
 
-export default function CrateInfo() {
+function CrateInfoContent() {
     const searchParams = useSearchParams();
     const crateParam = searchParams.get("crate");
     const [selectedCrateId, setSelectedCrateId] =
@@ -473,5 +473,13 @@ export default function CrateInfo() {
                 </div>
             </div>
         </>
+    );
+}
+
+export default function CrateInfo() {
+    return (
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+            <CrateInfoContent />
+        </Suspense>
     );
 }
