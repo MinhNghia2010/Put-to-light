@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Put-to-Light QR Test Generator</title>
+    <!-- Using qrcodejs library - more reliable for browser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #13131a;
+            --bg-card: #1a1a24;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+            --accent-yellow: #f59e0b;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --text-primary: #f4f4f5;
+            --text-secondary: #a1a1aa;
+            --border-color: #27272a;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            background: var(--bg-primary);
+            min-height: 100vh;
+            padding: 24px;
+            color: var(--text-primary);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .api-info {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px 24px;
+            margin-bottom: 24px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .api-info code {
+            background: var(--bg-secondary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: var(--accent-green);
+            font-size: 0.85rem;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--accent-green);
+            color: var(--bg-primary);
+        }
+
+        .btn-primary:hover {
+            background: #16a34a;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-purple);
+        }
+
+        .btn-danger {
+            background: var(--accent-red);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 16px 28px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .filter-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 16px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .basket-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .basket-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-purple);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .basket-card.valid {
+            border-left: 4px solid var(--accent-green);
+        }
+
+        .basket-card.invalid {
+            border-left: 4px solid var(--accent-red);
+        }
+
+        .basket-card.edge-case {
+            border-left: 4px solid var(--accent-yellow);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .basket-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            background: var(--bg-secondary);
+            padding: 4px 10px;
+            border-radius: 6px;
+            color: var(--accent-blue);
+        }
+
+        .status-badge {
+            font-size: 0.65rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-valid {
+            background: rgba(34, 197, 94, 0.15);
+            color: var(--accent-green);
+        }
+
+        .status-invalid {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-red);
+        }
+
+        .status-edge {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-yellow);
+        }
+
+        .basket-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+        }
+
+        .basket-items {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+            font-size: 0.8rem;
+        }
+
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .item-row:last-child {
+            border-bottom: none;
+        }
+
+        .item-sku {
+            color: var(--accent-purple);
+            font-family: monospace;
+        }
+
+        .item-qty {
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding-top: 8px;
+            margin-top: 8px;
+            border-top: 1px dashed var(--border-color);
+            font-weight: 600;
+        }
+
+        .qr-container {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 180px;
+        }
+
+        .qr-container img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .error-message {
+            color: var(--accent-red);
+            font-size: 0.75rem;
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        .json-preview {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+            font-size: 0.7rem;
+            overflow-x: auto;
+            white-space: pre;
+            color: var(--text-secondary);
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .copy-btn {
+            margin-top: 8px;
+            width: 100%;
+            padding: 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .copy-btn:hover {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .copy-btn.copied {
+            background: var(--accent-green);
+            color: var(--bg-primary);
+            border-color: var(--accent-green);
+        }
+
+        .products-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 32px;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .products-section h3 {
+            font-size: 1rem;
+            margin-bottom: 16px;
+            color: var(--accent-blue);
+        }
+
+        .product-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .product-tag {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-family: monospace;
+            color: var(--accent-purple);
+        }
+
+        .loading {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        @media print {
+            body {
+                background: white;
+                color: black;
+                padding: 10px;
+            }
+
+            .controls,
+            .filter-buttons,
+            .stats,
+            .api-info,
+            .products-section,
+            .header .subtitle,
+            .json-preview,
+            .copy-btn {
+                display: none !important;
+            }
+
+            .basket-card {
+                break-inside: avoid;
+                background: white;
+                border: 1px solid #ddd;
+                page-break-inside: avoid;
+            }
+
+            .basket-title,
+            .basket-items,
+            .item-row {
+                color: black !important;
+            }
+
+            .grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>📦 Put-to-Light QR Generator</h1>
+        <p class="subtitle">Scan these QR codes to test the Put-to-Light workflow</p>
+    </div>
+
+    <div class="api-info">
+        <strong>API Endpoint:</strong> <code>POST /api/put-to-light</code><br>
+        <small>Each QR code contains a JSON payload with basketId and items array. Scan with your device camera or use the manual test endpoint.</small>
+    </div>
+
+    <div class="products-section">
+        <h3>📋 Registered Products (Valid SKUs)</h3>
+        <div class="product-tags" id="productTags"></div>
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-primary" onclick="window.print()">🖨️ Print All</button>
+        <button class="btn btn-secondary" onclick="regenerateQRs()">🔄 Regenerate QR Codes</button>
+        <button class="btn btn-secondary" onclick="downloadJSON()">📥 Download Test Data</button>
+        <button class="btn btn-danger" onclick="resetAPI()">🗑️ Reset API State</button>
+    </div>
+
+    <div class="filter-buttons">
+        <button class="filter-btn active" onclick="filterBaskets('all', this)">All</button>
+        <button class="filter-btn" onclick="filterBaskets('valid', this)">✅ Valid</button>
+        <button class="filter-btn" onclick="filterBaskets('invalid', this)">❌ Invalid</button>
+        <button class="filter-btn" onclick="filterBaskets('edge-case', this)">⚠️ Edge Cases</button>
+    </div>
+
+    <div class="stats">
+        <div class="stat-card">
+            <div class="stat-number" id="totalCount">0</div>
+            <div class="stat-label">Total Baskets</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="validCount">0</div>
+            <div class="stat-label">Valid</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="invalidCount">0</div>
+            <div class="stat-label">Invalid</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="edgeCount">0</div>
+            <div class="stat-label">Edge Cases</div>
+        </div>
+    </div>
+
+    <div class="grid" id="basketGrid"></div>
+
+    <script>
+        // =====================================================================
+        // REGISTERED PRODUCTS (must match backend-store.ts)
+        // =====================================================================
+        const registeredProducts = [
+            { sku: "apple-red", name: "Red Apple", category: "Fruits" },
+            { sku: "apple-green", name: "Green Apple", category: "Fruits" },
+            { sku: "milk-carton", name: "Milk Carton 1L", category: "Dairy" },
+            { sku: "bread-white", name: "White Bread Loaf", category: "Bakery" },
+            { sku: "eggs-12pack", name: "Eggs 12-Pack", category: "Dairy" },
+            { sku: "banana-bunch", name: "Banana Bunch", category: "Fruits" },
+            { sku: "cheese-cheddar", name: "Cheddar Cheese 500g", category: "Dairy" },
+            { sku: "orange-juice", name: "Orange Juice 2L", category: "Beverages" },
+            { sku: "PRO-AUDIO-X7", name: "Wireless Headphones", category: "Electronics" },
+            { sku: "WATCH-SM-001", name: "Smart Watch Series 5", category: "Electronics" },
+            { sku: "KB-MECH-RGB", name: "Mechanical Keyboard RGB", category: "Electronics" },
+        ];
+
+        // =====================================================================
+        // TEST BASKETS - Various scenarios for testing Put-to-Light API
+        // =====================================================================
+        const testBaskets = [
+            // ==================== VALID BASKETS ====================
+            {
+                id: 1,
+                type: "valid",
+                title: "Simple Grocery Basket",
+                description: "Basic valid basket with 2 items",
+                payload: {
+                    basketId: "b-grocery-001",
+                    items: [
+                        { sku: "apple-red", qty: 5 },
+                        { sku: "milk-carton", qty: 2 }
+                    ]
+                }
+            },
+            {
+                id: 2,
+                type: "valid",
+                title: "Dairy Products Basket",
+                description: "All dairy items",
+                payload: {
+                    basketId: "b-dairy-002",
+                    items: [
+                        { sku: "milk-carton", qty: 3 },
+                        { sku: "eggs-12pack", qty: 2 },
+                        { sku: "cheese-cheddar", qty: 1 }
+                    ]
+                }
+            },
+            {
+                id: 3,
+                type: "valid",
+                title: "Electronics Bundle",
+                description: "Tech products basket",
+                payload: {
+                    basketId: "b-tech-003",
+                    items: [
+                        { sku: "PRO-AUDIO-X7", qty: 2 },
+                        { sku: "WATCH-SM-001", qty: 1 },
+                        { sku: "KB-MECH-RGB", qty: 1 }
+                    ]
+                }
+            },
+            {
+                id: 4,
+                type: "valid",
+                title: "Fruit Mix Basket",
+                description: "Fresh fruits only",
+                payload: {
+                    basketId: "b-fruit-004",
+                    items: [
+                        { sku: "apple-red", qty: 10 },
+                        { sku: "apple-green", qty: 8 },
+                        { sku: "banana-bunch", qty: 5 }
+                    ]
+                }
+            },
+            {
+                id: 5,
+                type: "valid",
+                title: "Single Item Basket",
+                description: "Just one product type",
+                payload: {
+                    basketId: "b-single-005",
+                    items: [
+                        { sku: "bread-white", qty: 3 }
+                    ]
+                }
+            },
+            {
+                id: 6,
+                type: "valid",
+                title: "Large Quantity Basket",
+                description: "High quantity order",
+                payload: {
+                    basketId: "b-large-006",
+                    items: [
+                        { sku: "apple-red", qty: 15 },
+                        { sku: "milk-carton", qty: 10 },
+                        { sku: "bread-white", qty: 8 }
+                    ]
+                }
+            },
+            {
+                id: 7,
+                type: "valid",
+                title: "Mixed Category Basket",
+                description: "Items from all categories",
+                payload: {
+                    basketId: "b-mixed-007",
+                    items: [
+                        { sku: "apple-red", qty: 3 },
+                        { sku: "milk-carton", qty: 1 },
+                        { sku: "bread-white", qty: 2 },
+                        { sku: "orange-juice", qty: 1 },
+                        { sku: "PRO-AUDIO-X7", qty: 1 }
+                    ]
+                }
+            },
+            {
+                id: 8,
+                type: "valid",
+                title: "Breakfast Bundle",
+                description: "Morning essentials",
+                payload: {
+                    basketId: "b-breakfast-008",
+                    items: [
+                        { sku: "eggs-12pack", qty: 1 },
+                        { sku: "bread-white", qty: 1 },
+                        { sku: "milk-carton", qty: 2 },
+                        { sku: "orange-juice", qty: 1 }
+                    ]
+                }
+            },
+            {
+                id: 30,
+                type: "valid",
+                title: "Large Quantity Basket",
+                description: "High quantity order",
+                payload: {
+                    basketId: "b-large-030",
+                    items: [
+                        { sku: "apple-red", qty: 3 },
+                        { sku: "bread-white", qty: 1 },
+                        { sku: "milk-carton", qty: 2 },
+                        { sku: "orange-juice", qty: 1 }
+                    ]
+                }
+            },
+
+            // ==================== EDGE CASES ====================
+            {
+                id: 9,
+                type: "edge-case",
+                title: "Maximum Capacity Test",
+                description: "50 items - should fill one crate exactly",
+                payload: {
+                    basketId: "b-max-009",
+                    items: [
+                        { sku: "apple-red", qty: 25 },
+                        { sku: "banana-bunch", qty: 25 }
+                    ]
+                }
+            },
+            {
+                id: 10,
+                type: "edge-case",
+                title: "Near Capacity Basket",
+                description: "18 items - tests capacity algorithm",
+                payload: {
+                    basketId: "b-near-cap-010",
+                    items: [
+                        { sku: "cheese-cheddar", qty: 10 },
+                        { sku: "eggs-12pack", qty: 8 }
+                    ]
+                }
+            },
+            {
+                id: 11,
+                type: "edge-case",
+                title: "Minimum Items Basket",
+                description: "Just 1 item of 1 quantity",
+                payload: {
+                    basketId: "b-min-011",
+                    items: [
+                        { sku: "apple-green", qty: 1 }
+                    ]
+                }
+            },
+            {
+                id: 12,
+                type: "edge-case",
+                title: "Overflow Capacity Test",
+                description: "100 items - might exceed available capacity",
+                payload: {
+                    basketId: "b-overflow-012",
+                    items: [
+                        { sku: "apple-red", qty: 50 },
+                        { sku: "milk-carton", qty: 50 }
+                    ]
+                }
+            },
+
+            // ==================== INVALID BASKETS ====================
+            {
+                id: 13,
+                type: "invalid",
+                title: "Missing Basket ID",
+                description: "No basketId field - should fail",
+                payload: {
+                    items: [
+                        { sku: "apple-red", qty: 5 }
+                    ]
+                },
+                expectedError: "MISSING_BASKET_ID"
+            },
+            {
+                id: 14,
+                type: "invalid",
+                title: "Empty Basket ID",
+                description: "Empty string basketId - should fail",
+                payload: {
+                    basketId: "",
+                    items: [
+                        { sku: "apple-red", qty: 5 }
+                    ]
+                },
+                expectedError: "MISSING_BASKET_ID"
+            },
+            {
+                id: 15,
+                type: "invalid",
+                title: "Missing Items Array",
+                description: "No items field - should fail",
+                payload: {
+                    basketId: "b-no-items-015"
+                },
+                expectedError: "MISSING_ITEMS"
+            },
+            {
+                id: 16,
+                type: "invalid",
+                title: "Empty Items Array",
+                description: "Empty items array - should fail",
+                payload: {
+                    basketId: "b-empty-016",
+                    items: []
+                },
+                expectedError: "MISSING_ITEMS"
+            },
+            {
+                id: 17,
+                type: "invalid",
+                title: "Unknown Product SKU",
+                description: "Contains unregistered product",
+                payload: {
+                    basketId: "b-unknown-017",
+                    items: [
+                        { sku: "apple-red", qty: 2 },
+                        { sku: "mystery-product-xyz", qty: 1 }
+                    ]
+                },
+                expectedError: "UNKNOWN_PRODUCT"
+            },
+            {
+                id: 18,
+                type: "invalid",
+                title: "All Unknown Products",
+                description: "No valid products at all",
+                payload: {
+                    basketId: "b-all-unknown-018",
+                    items: [
+                        { sku: "fake-product-1", qty: 5 },
+                        { sku: "fake-product-2", qty: 3 }
+                    ]
+                },
+                expectedError: "UNKNOWN_PRODUCT"
+            },
+            {
+                id: 19,
+                type: "invalid",
+                title: "Negative Quantity",
+                description: "Invalid negative qty value",
+                payload: {
+                    basketId: "b-negative-019",
+                    items: [
+                        { sku: "apple-red", qty: -5 }
+                    ]
+                },
+                expectedError: "INVALID_QR_DATA"
+            },
+            {
+                id: 20,
+                type: "invalid",
+                title: "Zero Quantity",
+                description: "Invalid zero qty value",
+                payload: {
+                    basketId: "b-zero-020",
+                    items: [
+                        { sku: "apple-red", qty: 0 }
+                    ]
+                },
+                expectedError: "INVALID_QR_DATA"
+            },
+
+            // ==================== DUPLICATE TEST ====================
+            {
+                id: 21,
+                type: "edge-case",
+                title: "Duplicate Test Basket",
+                description: "Scan twice to test ALREADY_PROCESSED",
+                payload: {
+                    basketId: "b-duplicate-021",
+                    items: [
+                        { sku: "apple-red", qty: 3 },
+                        { sku: "milk-carton", qty: 2 }
+                    ]
+                }
+            },
+
+            // ==================== MORE VALID BASKETS ====================
+            {
+                id: 22,
+                type: "valid",
+                title: "Quick Snack Basket",
+                description: "Small snack order",
+                payload: {
+                    basketId: "b-snack-022",
+                    items: [
+                        { sku: "apple-green", qty: 2 },
+                        { sku: "banana-bunch", qty: 1 }
+                    ]
+                }
+            },
+            {
+                id: 23,
+                type: "valid",
+                title: "Weekly Grocery",
+                description: "Standard weekly shopping",
+                payload: {
+                    basketId: "b-weekly-023",
+                    items: [
+                        { sku: "milk-carton", qty: 4 },
+                        { sku: "bread-white", qty: 2 },
+                        { sku: "eggs-12pack", qty: 1 },
+                        { sku: "cheese-cheddar", qty: 1 },
+                        { sku: "apple-red", qty: 6 }
+                    ]
+                }
+            },
+            {
+                id: 24,
+                type: "valid",
+                title: "Party Supplies",
+                description: "For a small gathering",
+                payload: {
+                    basketId: "b-party-024",
+                    items: [
+                        { sku: "orange-juice", qty: 5 },
+                        { sku: "cheese-cheddar", qty: 3 },
+                        { sku: "bread-white", qty: 4 }
+                    ]
+                }
+            }
+        ];
+
+        // Store QR code instances
+        const qrInstances = {};
+
+        // =====================================================================
+        // RENDER FUNCTIONS
+        // =====================================================================
+
+        function renderProductTags() {
+            const container = document.getElementById('productTags');
+            container.innerHTML = registeredProducts.map(p => 
+                `<span class="product-tag">${p.sku}</span>`
+            ).join('');
+        }
+
+        function calculateTotal(items) {
+            if (!items || !Array.isArray(items)) return 0;
+            return items.reduce((sum, item) => sum + (item.qty || 0), 0);
+        }
+
+        function createBasketCard(basket) {
+            const total = calculateTotal(basket.payload.items);
+            const typeClass = basket.type;
+            const statusClass = basket.type === 'valid' ? 'status-valid' : 
+                               basket.type === 'invalid' ? 'status-invalid' : 'status-edge';
+            const statusText = basket.type === 'valid' ? '✅ Valid' : 
+                              basket.type === 'invalid' ? '❌ Invalid' : '⚠️ Edge Case';
+
+            const itemsHtml = basket.payload.items ? basket.payload.items.map(item => `
+                <div class="item-row">
+                    <span class="item-sku">${item.sku || '(no sku)'}</span>
+                    <span class="item-qty">× ${item.qty ?? '(no qty)'}</span>
+                </div>
+            `).join('') : '<div class="item-row"><span class="error-message">No items</span></div>';
+
+            return `
+                <div class="basket-card ${typeClass}" data-type="${basket.type}">
+                    <div class="card-header">
+                        <span class="basket-id">${basket.payload.basketId || '(no id)'}</span>
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="basket-title">${basket.title}</div>
+                    <p style="color: var(--text-secondary); font-size: 0.75rem; margin-bottom: 12px;">
+                        ${basket.description}
+                        ${basket.expectedError ? `<br><code style="color: var(--accent-red);">Expected: ${basket.expectedError}</code>` : ''}
+                    </p>
+                    <div class="basket-items">
+                        ${itemsHtml}
+                        <div class="total-row">
+                            <span>Total Items</span>
+                            <span style="color: var(--accent-green)">${total}</span>
+                        </div>
+                    </div>
+                    <div class="qr-container" id="qr-${basket.id}">
+                        <span class="loading">Generating QR...</span>
+                    </div>
+                    <div class="json-preview">${JSON.stringify(basket.payload, null, 2)}</div>
+                    <button class="copy-btn" onclick="copyPayload(${basket.id})">📋 Copy JSON Payload</button>
+                </div>
+            `;
+        }
+
+        function generateQRCode(elementId, data) {
+            const container = document.getElementById(elementId);
+            if (!container) return;
+
+            // Clear previous content
+            container.innerHTML = '';
+
+            try {
+                const jsonString = JSON.stringify(data);
+                
+                // Create QR code using qrcodejs library
+                qrInstances[elementId] = new QRCode(container, {
+                    text: jsonString,
+                    width: 160,
+                    height: 160,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+            } catch (error) {
+                console.error('QR Generation Error:', error);
+                container.innerHTML = `
+                    <div style="color: var(--accent-red); font-size: 0.75rem; text-align: center;">
+                        Failed to generate QR<br>
+                        <small>${error.message}</small>
+                    </div>
+                `;
+            }
+        }
+
+        function renderBaskets() {
+            const grid = document.getElementById('basketGrid');
+            grid.innerHTML = testBaskets.map(b => createBasketCard(b)).join('');
+
+            // Generate QR codes after DOM is updated
+            setTimeout(() => {
+                testBaskets.forEach(basket => {
+                    generateQRCode(`qr-${basket.id}`, basket.payload);
+                });
+            }, 100);
+
+            // Update stats
+            const validCount = testBaskets.filter(b => b.type === 'valid').length;
+            const invalidCount = testBaskets.filter(b => b.type === 'invalid').length;
+            const edgeCount = testBaskets.filter(b => b.type === 'edge-case').length;
+
+            document.getElementById('totalCount').textContent = testBaskets.length;
+            document.getElementById('validCount').textContent = validCount;
+            document.getElementById('invalidCount').textContent = invalidCount;
+            document.getElementById('edgeCount').textContent = edgeCount;
+        }
+
+        function filterBaskets(type, btn) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            document.querySelectorAll('.basket-card').forEach(card => {
+                if (type === 'all' || card.dataset.type === type) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function regenerateQRs() {
+            testBaskets.forEach(basket => {
+                const container = document.getElementById(`qr-${basket.id}`);
+                if (container) {
+                    container.innerHTML = '<span class="loading">Regenerating...</span>';
+                }
+            });
+            
+            setTimeout(() => {
+                testBaskets.forEach(basket => {
+                    generateQRCode(`qr-${basket.id}`, basket.payload);
+                });
+            }, 100);
+        }
+
+        function copyPayload(basketId) {
+            const basket = testBaskets.find(b => b.id === basketId);
+            if (!basket) return;
+
+            const json = JSON.stringify(basket.payload, null, 2);
+            navigator.clipboard.writeText(json).then(() => {
+                // Find the button within the card
+                const card = document.querySelector(`.basket-card[data-type] .copy-btn`);
+                const cards = document.querySelectorAll('.basket-card');
+                cards.forEach((c, i) => {
+                    if (testBaskets[i]?.id === basketId) {
+                        const btn = c.querySelector('.copy-btn');
+                        if (btn) {
+                            btn.textContent = '✅ Copied!';
+                            btn.classList.add('copied');
+                            setTimeout(() => {
+                                btn.textContent = '📋 Copy JSON Payload';
+                                btn.classList.remove('copied');
+                            }, 2000);
+                        }
+                    }
+                });
+            }).catch(err => {
+                console.error('Copy failed:', err);
+                alert('Failed to copy. Please select and copy the JSON manually.');
+            });
+        }
+
+        function downloadJSON() {
+            const data = {
+                generatedAt: new Date().toISOString(),
+                registeredProducts,
+                testBaskets: testBaskets.map(b => ({
+                    id: b.id,
+                    type: b.type,
+                    title: b.title,
+                    description: b.description,
+                    payload: b.payload,
+                    expectedError: b.expectedError
+                }))
+            };
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'put-to-light-test-data.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function resetAPI() {
+            if (!confirm('This will reset all crates and clear processed baskets. Continue?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/put-to-light', { method: 'DELETE' });
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('✅ API state has been reset. All crates are now available.');
+                } else {
+                    alert('❌ Failed to reset: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('❌ Connection error: ' + error.message);
+            }
+        }
+
+        // =====================================================================
+        // INITIALIZE
+        // =====================================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            renderProductTags();
+            renderBaskets();
+        });
+        
+        // Fallback if DOMContentLoaded already fired
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            renderProductTags();
+            renderBaskets();
+        }
+    </script>
+</body>
+
+</html>

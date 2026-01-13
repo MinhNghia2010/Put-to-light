@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Plus, LogOut } from "lucide-react";
-import { Button } from "./ui/button";
+import { LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import {
     NavigationMenu,
@@ -84,7 +83,7 @@ export function Navigation({ currentPage }: NavigationProps) {
                                         </Avatar>
                                     </button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="min-w-32 w-auto">
+                                <DropdownMenuContent align="end" className="min-w-32 w-auto z-1000">
                                     <DropdownMenuItem asChild>
                                         <Link href="/login" className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer focus:bg-destructive/10">
                                             <LogOut className="size-4" />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,21 +9,74 @@ import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
 import { ButtonGroup } from "./ui/button-group";
-import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import * as api from "@/lib/api";
 
 interface AddToCrateModalProps {
   open: boolean;
   onClose: () => void;
   crateId: string;
+  sku?: string;
+  itemName?: string;
+  basketId?: string;
+  onSuccess?: () => void;
 }
 
-export function AddToCrateModal({ open, onClose, crateId }: AddToCrateModalProps) {
+export function AddToCrateModal({ 
+  open, 
+  onClose, 
+  crateId, 
+  sku = "ITEM-001",
+  itemName = "Product",
+  basketId = "BASKET-001",
+  onSuccess 
+}: AddToCrateModalProps) {
   const [quantity, setQuantity] = useState("1");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleAddItems = () => {
-    // Handle adding items logic here
-    onClose();
-  };
+  const handleAddItems = useCallback(async () => {
+    if (!quantity || parseInt(quantity) <= 0) {
+      setError("Vui lòng nhập số lượng hợp lệ");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Gọi API để thêm sản phẩm vào máng
+      const result = await api.updateSlotQuantity(crateId, {
+        slotId: crateId,
+        sku,
+        quantity: parseInt(quantity),
+        action: "add",
+      });
+
+      if (result.success) {
+        // Ghi lịch sử
+        await api.addHistory({
+          basketId,
+          sku,
+          itemName,
+          slotId: crateId,
+          quantity: parseInt(quantity),
+          action: "put",
+        });
+
+        // Reset và đóng modal
+        setQuantity("1");
+        onSuccess?.();
+        onClose();
+      } else {
+        setError(result.error || "Không thể thêm sản phẩm");
+      }
+    } catch (err) {
+      setError("Lỗi kết nối. Vui lòng thử lại.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [quantity, crateId, sku, itemName, basketId, onClose, onSuccess]);
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -89,15 +142,27 @@ export function AddToCrateModal({ open, onClose, crateId }: AddToCrateModalProps
             </Button>
           </ButtonGroup>
 
+        {error && (
+          <p className="text-sm text-destructive text-center">{error}</p>
+        )}
+
         <div className="flex justify-end gap-4">
-          <Button variant="outline" className="text-xl p-6" onClick={onClose}>
+          <Button variant="outline" className="text-xl p-6" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>
           <Button
             onClick={handleAddItems}
+            disabled={isLoading}
             className="bg-destructive text-xl p-6 hover:bg-destructive/90"
           >
-            Add Items
+            {isLoading ? (
+              <>
+                <Loader2 className="size-5 mr-2 animate-spin" />
+                Adding...
+              </>
+            ) : (
+              "Add Items"
+            )}
           </Button>
         </div>
       </DialogContent>
